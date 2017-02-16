@@ -2,132 +2,226 @@ package boltqueue
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"os"
+	"strings"
+	"time"
 )
-
-// TODO: Interfacification of messages
-
-var foundItem = errors.New("item found")
 
 // aKey singleton for assigning keys to messages
 var aKey = new(atomicKey)
 
 // PQueue is a priority queue backed by a Bolt database on disk
 type PQueue struct {
-	conn *bolt.DB
+	// When RetainOnClose is true, the database file will be preserved after Close() is called.
+	// Normally, the file is deleted on Close().
+	RetainOnClose bool
+
+	conn        *bolt.DB
+	size        int64
+	maxPriority int64
 }
 
-// NewPQueue loads or creates a new PQueue with the given filename
-func NewPQueue(filename string) (*PQueue, error) {
+// NewPQueue loads or creates a new PQueue with the given filename. If the filename
+// is a directory name ending with '/', a unique filename is generated and appended to it.
+// Specify the required range of priorities; available priorities are from 0 (lowest) to
+// the specified number minus one.
+func NewPQueue(filename string, priorities uint) (*PQueue, error) {
+	if strings.HasSuffix(filename, "/") {
+		filename = fmt.Sprintf("%spq%d.db", filename, time.Now().UnixNano())
+	}
 	db, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &PQueue{db}, nil
+	return WrapDB(db, priorities)
 }
 
-func (b *PQueue) enqueueMessage(priority int, key []byte, message *Message) error {
-	if priority < 0 || priority > 255 {
+// WrapDB wraps an existing BoltDB.
+// Specify the required range of priorities; available priorities are from 0 (lowest) to
+// the specified number minus one.
+func WrapDB(db *bolt.DB, priorities uint) (*PQueue, error) {
+	q := &PQueue{false, db, 0, int64(priorities) - 1}
+	var err error
+	q.size, err = q.TotalSize()
+	return q, err
+}
+
+func (b *PQueue) enqueueMessage(priority uint, key []byte, message *Message) error {
+	ipri := int64(priority)
+	if ipri > b.maxPriority {
 		return fmt.Errorf("Invalid priority %d on Enqueue", priority)
 	}
-	p := make([]byte, 1)
-	p[0] = byte(uint8(priority))
-	return b.conn.Update(func(tx *bolt.Tx) error {
+	p := priBytes(ipri, b.maxPriority)
+
+	err1 := b.conn.Update(func(tx *bolt.Tx) error {
+
 		// Get bucket for this priority level
-		pb, err := tx.CreateBucketIfNotExists(p)
-		if err != nil {
-			return err
+		pb, err2 := tx.CreateBucketIfNotExists(p)
+		if err2 != nil {
+			return err2
 		}
-		err = pb.Put(key, message.value)
-		if err != nil {
-			return err
+
+		err2 = pb.Put(key, message.value)
+		if err2 == nil {
+			// note that Bolt Update provides a write lock already (no need for extra sync)
+			b.size += 1
 		}
-		return nil
+		return err2
 	})
+
+	return err1
 }
 
-// Enqueue adds a message to the queue
-func (b *PQueue) Enqueue(priority int, message *Message) error {
-	k := make([]byte, 8)
-	binary.BigEndian.PutUint64(k, aKey.Get())
-	return b.enqueueMessage(priority, k, message)
+// Enqueue adds a message to the queue at a specified priority (0=lowest).
+func (b *PQueue) Enqueue(priority uint, message *Message) error {
+	return b.enqueueMessage(priority, aKey.GetBytes(), message)
+}
+
+// EnqueueValue adds a byte slice value to the queue at a specified priority (0=lowest).
+func (b *PQueue) EnqueueValue(priority uint, value []byte) error {
+	return b.enqueueMessage(priority, aKey.GetBytes(), WrapBytes(value))
+}
+
+// EnqueueString adds a string value to the queue at a specified priority (0=lowest).
+func (b *PQueue) EnqueueString(priority uint, value string) error {
+	return b.EnqueueValue(priority, []byte(value))
 }
 
 // Requeue adds a message back into the queue, keeping its precedence.
 // If added at the same priority, it should be among the first to dequeue.
 // If added at a different priority, it will dequeue before newer messages
 // of that priority.
-func (b *PQueue) Requeue(priority int, message *Message) error {
+func (b *PQueue) Requeue(priority uint, message *Message) error {
 	if message.key == nil {
-		return fmt.Errorf("Cannot requeue new message")
+		return fmt.Errorf("Cannot requeue a new message.")
 	}
 	return b.enqueueMessage(priority, message.key, message)
 }
 
-// Dequeue removes the oldest, highest priority message from the queue and
-// returns it
+// Dequeue removes the oldest, highest priority message from the queue and returns it.
 func (b *PQueue) Dequeue() (*Message, error) {
 	var m *Message
-	err := b.conn.Update(func(tx *bolt.Tx) error {
-		err := tx.ForEach(func(bname []byte, bucket *bolt.Bucket) error {
-			if bucket.Stats().KeyN == 0 { //empty bucket
-				return nil
-			}
-			cur := bucket.Cursor()
-			k, v := cur.First() //Should not be empty by definition
-			priority, _ := binary.Uvarint(bname)
-			m = &Message{priority: int(priority), key: cloneBytes(k), value: cloneBytes(v)}
 
-			// Remove message
-			if err := cur.Delete(); err != nil {
-				return err
+	err1 := b.conn.Update(func(tx *bolt.Tx) error {
+
+		for pri := b.maxPriority; pri >= 0; pri-- {
+			bucket := tx.Bucket(priBytes(pri, b.maxPriority))
+
+			if bucket != nil && bucket.Stats().KeyN > 0 {
+				cur := bucket.Cursor()
+				k, v := cur.First() //Should not be empty by definition
+				m = &Message{priority: uint(pri), key: cloneBytes(k), value: cloneBytes(v)}
+
+				// Remove message
+				if err2 := cur.Delete(); err2 != nil {
+					return err2
+				}
+				// note that Bolt Update provides a write lock already (no need for extra sync)
+				b.size -= 1
+				break
 			}
-			return foundItem //to stop the iteration
-		})
-		if err != nil && err != foundItem {
-			return err
 		}
+
 		return nil
 	})
+
+	return m, err1
+}
+
+// DequeueValue removes the oldest, highest priority message from the queue and returns its byte slice.
+func (b *PQueue) DequeueValue() ([]byte, error) {
+	m, err := b.Dequeue()
 	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	return m.value, nil
 }
 
-// Size returns the number of entries of a given priority from 1 to 5
-func (b *PQueue) Size(priority int) (int, error) {
-	if priority < 0 || priority > 255 {
+// DequeueString removes the oldest, highest priority message from the queue and returns its value as a string.
+func (b *PQueue) DequeueString() (string, error) {
+	v, err := b.DequeueValue()
+	if err != nil {
+		return "", err
+	}
+	return string(v), nil
+}
+
+// Size returns the number of entries of a given priority from 0 to 255 (0=highest).
+func (b *PQueue) Size(priority uint) (int, error) {
+	ipri := int64(priority)
+	if ipri > b.maxPriority {
 		return 0, fmt.Errorf("Invalid priority %d for Size()", priority)
 	}
+
 	tx, err := b.conn.Begin(false)
 	if err != nil {
 		return 0, err
 	}
-	bucket := tx.Bucket([]byte{byte(uint8(priority))})
+
+	bucket := tx.Bucket(priBytes(ipri, b.maxPriority))
 	if bucket == nil {
 		return 0, nil
 	}
+
 	count := bucket.Stats().KeyN
 	tx.Rollback()
+
 	return count, nil
 }
 
-// Close closes the queue and releases all resources
-func (b *PQueue) Close() error {
-	err := b.conn.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+// TotalSize sums the sizes of all the priority queues.
+func (b *PQueue) TotalSize() (int64, error) {
+	var size int64 = 0
+	err := b.conn.View(func(tx *bolt.Tx) error {
+		for pri := b.maxPriority; pri >= 0; pri-- {
+			p := priBytes(pri, b.maxPriority)
+			bucket := tx.Bucket(p)
+			if bucket != nil {
+				size += int64(bucket.Stats().KeyN)
+			}
+			//fmt.Printf("size after %d = %d\n", pri, size)
+		}
+		return nil
+	})
+	return size, err
 }
 
-// taken from boltDB. Avoids corruption when re-queueing
+// ApproxSize returns the sum of the sizes of all the priority queues, approximately. If the queue size is
+// changing rapidly, this figure will be inaccurate. However, obtaining this value is very quick.
+func (b *PQueue) ApproxSize() int64 {
+	return b.size
+}
+
+// Close closes the queue database.
+func (b *PQueue) Close() error {
+	if !b.RetainOnClose {
+		defer os.Remove(b.conn.Path())
+	}
+	return b.conn.Close()
+}
+
 func cloneBytes(v []byte) []byte {
-	var clone = make([]byte, len(v))
+	clone := make([]byte, len(v))
 	copy(clone, v)
 	return clone
+}
+
+func priBytes(priority, max int64) (b []byte) {
+	if max <= 0x100 {
+		b = make([]byte, 1)
+		b[0] = byte(priority)
+	} else if max <= 0x10000 {
+		b = make([]byte, 2)
+		binary.BigEndian.PutUint16(b, uint16(priority))
+	} else if max <= 0x100000000 {
+		b = make([]byte, 4)
+		binary.BigEndian.PutUint32(b, uint32(priority))
+	} else {
+		b = make([]byte, 8)
+		binary.BigEndian.PutUint64(b, uint64(priority))
+	}
+	return
 }
