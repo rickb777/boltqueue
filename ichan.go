@@ -60,6 +60,12 @@ func (c *IChan) SetErrorHandler(eh func(error)) {
 // It is safe to share this channel between several goroutines; when this is done, a pseudo-random
 // selection is made between them and only one goroutine receives each message (this is normal
 // Go behaviour).
+//
+// When you have finished, you muse close the channel (as is normal for Go channels), otherwise
+// the resources will not be released cleanly.
+//
+// If you prefer for there not to be one extra goroutine and don't want the simple channel
+// abstraction, don't use this method but instead use Send(), SendString() and then Close().
 func (c *IChan) SendEnd() chan<- []byte {
 	if c.input == nil {
 		c.input = make(chan []byte)
