@@ -18,5 +18,11 @@ first.
 There is no practical limit on the number of priorities, but a smaller number
 will typically give better performance than a larger number.
 
+The IChan type represents an unbounded channel with one priority, backed
+by a PQueue. As with ordinary channels, messages are inserted into one
+end and received from the other end in the same order. The size of the
+channel's buffer is limited only by space on the fiing system.
+
+The sending end
 */
 package boltqueue

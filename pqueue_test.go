@@ -87,7 +87,7 @@ func TestDequeueDeep(t *testing.T) {
 }
 
 func TestDequeueWide(t *testing.T) {
-	rng := uint(300) // more than 256
+	rng := uint(260) // more than 256
 
 	testPQueue, err := NewPQueue("./", rng)
 	if err != nil {

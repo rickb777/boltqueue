@@ -24,8 +24,8 @@ type PQueue struct {
 	maxPriority int64
 }
 
-// NewPQueue loads or creates a new PQueue with the given filename. If the filename
-// is a directory name ending with '/', a unique filename is generated and appended to it.
+// NewPQueue loads or creates a new PQueue with the given filename.
+// If the filename is a directory name ending with '/', a unique filename is generated and appended to it.
 // Specify the required range of priorities; available priorities are from 0 (lowest) to
 // the specified number minus one.
 func NewPQueue(filename string, priorities uint) (*PQueue, error) {
@@ -102,6 +102,7 @@ func (b *PQueue) Requeue(priority uint, message *Message) error {
 }
 
 // Dequeue removes the oldest, highest priority message from the queue and returns it.
+// If there are no messages available, nil, nil will be returned.
 func (b *PQueue) Dequeue() (*Message, error) {
 	var m *Message
 
@@ -134,7 +135,7 @@ func (b *PQueue) Dequeue() (*Message, error) {
 // DequeueValue removes the oldest, highest priority message from the queue and returns its byte slice.
 func (b *PQueue) DequeueValue() ([]byte, error) {
 	m, err := b.Dequeue()
-	if err != nil {
+	if m == nil || err != nil {
 		return nil, err
 	}
 	return m.value, nil
@@ -142,11 +143,11 @@ func (b *PQueue) DequeueValue() ([]byte, error) {
 
 // DequeueString removes the oldest, highest priority message from the queue and returns its value as a string.
 func (b *PQueue) DequeueString() (string, error) {
-	v, err := b.DequeueValue()
-	if err != nil {
+	m, err := b.Dequeue()
+	if m == nil || err != nil {
 		return "", err
 	}
-	return string(v), nil
+	return string(m.value), nil
 }
 
 // Size returns the number of entries of a given priority from 0 to 255 (0=highest).
