@@ -26,3 +26,6 @@ The IChan channel provides a communication pipe with the same semantics as norma
 buffered Go channels. The message type is always `[]byte`, however. Buffering uses
 a BoltDB file store. This allows the channel to be persistent and outside-of-memory,
 but will impair performance compared to an equivalent in-memory channel.
+
+
+## Licence : MIT
