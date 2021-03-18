@@ -1,7 +1,5 @@
 # boltqueue
 
-[![GoDoc](https://godoc.org/github.com/rickb777/boltqueue?status.svg)](https://godoc.org/github.com/rickb777/boltqueue)
-
 [![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/boltqueue)
 [![Build Status](https://api.travis-ci.org/rickb777/boltqueue.svg?branch=master)](https://travis-ci.org/rickb777/boltqueue/builds)
 [![Coverage Status](https://coveralls.io/repos/rickb777/boltqueue/badge.svg?branch=master&service=github)](https://coveralls.io/github/rickb777/boltqueue?branch=master)
