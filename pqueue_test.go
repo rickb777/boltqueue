@@ -13,6 +13,24 @@ var zero = uint(0)
 var one = uint(1)
 var five = uint(5)
 
+func TestGobMessage(t *testing.T) {
+	input := map[string]int{
+		"a": 101,
+		"b": 37,
+	}
+	m := NewGobMessage(input)
+
+	output := make(map[string]int)
+	err := m.GobValue(&output)
+	if err != nil {
+		t.Error(err)
+	} else if len(output) != 2 {
+		t.Errorf("Expected map size 2. Got: %d", len(output))
+	} else if output["a"] != 101 || output["b"] != 37 {
+		t.Errorf("Expected output 101 and 37. Got: %d and %d", output["a"], output["b"])
+	}
+}
+
 func TestEnqueue(t *testing.T) {
 	testPQueue, err := NewPQueue("./", 10)
 	if err != nil {

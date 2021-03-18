@@ -1,11 +1,21 @@
-# boltqueue[![GoDoc](https://godoc.org/github.com/rickb777/boltqueue?status.svg)](https://godoc.org/github.com/rickb777/boltqueue)
---
+# boltqueue
+
+[![GoDoc](https://godoc.org/github.com/rickb777/boltqueue?status.svg)](https://godoc.org/github.com/rickb777/boltqueue)
+
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/boltqueue)
+[![Build Status](https://api.travis-ci.org/rickb777/boltqueue.svg?branch=master)](https://travis-ci.org/rickb777/boltqueue/builds)
+[![Coverage Status](https://coveralls.io/repos/rickb777/boltqueue/badge.svg?branch=master&service=github)](https://coveralls.io/github/rickb777/boltqueue?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rickb777/boltqueue)](https://goreportcard.com/report/github.com/rickb777/boltqueue)
+[![Issues](https://img.shields.io/github/issues/rickb777/boltqueue.svg)](https://github.com/rickb777/boltqueue/issues)
+
+
     import "github.com/rickb777/boltqueue"
 
-Package boltqueue provides a persistent priority queue (`PQueue`) based on BoltDB
-(https://github.com/boltdb/bolt).
+Package boltqueue provides a persistent priority queue (`PQueue`) using as its store 
+[BBolt](https://pkg.go.dev/go.etcd.io/bbolt), which
+is a derivative of [BoltDB](https://github.com/boltdb/bolt).
 
-Built on this, a channel implementation is provided that uses the BoltDB backing store
+Built on this, a channel implementation is provided that uses the BBolt backing store
 to provide a channel with persistent buffering on a large scale. This is intended to
 complement (not replace) standard message queuing technologies.
 
