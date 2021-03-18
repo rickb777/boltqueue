@@ -3,8 +3,7 @@ package boltqueue
 import (
 	"encoding/binary"
 	"fmt"
-
-	"github.com/boltdb/bolt"
+	"go.etcd.io/bbolt"
 	"os"
 	"strings"
 	"time"
@@ -19,7 +18,7 @@ type PQueue struct {
 	// Normally, the file is deleted on Close().
 	RetainOnClose bool
 
-	conn        *bolt.DB
+	conn        *bbolt.DB
 	size        int64
 	maxPriority int64
 }
@@ -32,7 +31,7 @@ func NewPQueue(filename string, priorities uint) (*PQueue, error) {
 	if strings.HasSuffix(filename, "/") {
 		filename = fmt.Sprintf("%spq%d.db", filename, time.Now().UnixNano())
 	}
-	db, err := bolt.Open(filename, 0600, nil)
+	db, err := bbolt.Open(filename, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func NewPQueue(filename string, priorities uint) (*PQueue, error) {
 // WrapDB wraps an existing BoltDB.
 // Specify the required range of priorities; available priorities are from 0 (lowest) to
 // the specified number minus one.
-func WrapDB(db *bolt.DB, priorities uint) (*PQueue, error) {
+func WrapDB(db *bbolt.DB, priorities uint) (*PQueue, error) {
 	q := &PQueue{false, db, 0, int64(priorities) - 1}
 	var err error
 	q.size, err = q.TotalSize()
@@ -56,7 +55,7 @@ func (b *PQueue) enqueueMessage(priority uint, key []byte, message *Message) err
 	}
 	p := priBytes(ipri, b.maxPriority)
 
-	err1 := b.conn.Update(func(tx *bolt.Tx) error {
+	err1 := b.conn.Update(func(tx *bbolt.Tx) error {
 
 		// Get bucket for this priority level
 		pb, err2 := tx.CreateBucketIfNotExists(p)
@@ -106,7 +105,7 @@ func (b *PQueue) Requeue(priority uint, message *Message) error {
 func (b *PQueue) Dequeue() (*Message, error) {
 	var m *Message
 
-	err1 := b.conn.Update(func(tx *bolt.Tx) error {
+	err1 := b.conn.Update(func(tx *bbolt.Tx) error {
 
 		for pri := b.maxPriority; pri >= 0; pri-- {
 			bucket := tx.Bucket(priBytes(pri, b.maxPriority))
@@ -176,7 +175,7 @@ func (b *PQueue) Size(priority uint) (int, error) {
 // TotalSize sums the sizes of all the priority queues.
 func (b *PQueue) TotalSize() (int64, error) {
 	var size int64 = 0
-	err := b.conn.View(func(tx *bolt.Tx) error {
+	err := b.conn.View(func(tx *bbolt.Tx) error {
 		for pri := b.maxPriority; pri >= 0; pri-- {
 			p := priBytes(pri, b.maxPriority)
 			bucket := tx.Bucket(p)

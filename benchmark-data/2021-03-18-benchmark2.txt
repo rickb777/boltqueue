@@ -1,0 +1,19 @@
+goos: linux
+goarch: amd64
+pkg: github.com/rickb777/boltqueue
+cpu: Intel(R) Core(TM) i7-4790 CPU @ 3.60GHz
+BenchmarkPQueue1-8      	      85	  13502485 ns/op
+BenchmarkPQueue10-8     	       8	 134384334 ns/op
+BenchmarkPQueue100-8    	       1	1426042864 ns/op
+BenchmarkPQueue1000-8   	       1	14740185136 ns/op
+PASS
+ok  	github.com/rickb777/boltqueue	29.330s
+-----------------------------------------------------------
+module github.com/rickb777/boltqueue
+
+go 1.16
+
+require (
+	go.etcd.io/bbolt v1.3.5
+	golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e // indirect
+)
