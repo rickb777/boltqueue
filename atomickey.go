@@ -2,27 +2,19 @@ package boltqueue
 
 import (
 	"encoding/binary"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
-type atomicKey struct {
-	sync.Mutex
-	key int64
+type atomicKey uint64
+
+func newAtomicKey() *atomicKey {
+	key := atomicKey(time.Now().UnixNano())
+	return &key
 }
 
 func (a *atomicKey) get() uint64 {
-	t := time.Now().UnixNano()
-
-	a.Lock()
-	defer a.Unlock()
-
-	if t <= a.key {
-		t = a.key + 1
-	}
-	a.key = t
-
-	return uint64(t)
+	return atomic.AddUint64((*uint64)(a), 1)
 }
 
 func (a *atomicKey) GetBytes() []byte {

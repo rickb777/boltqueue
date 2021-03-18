@@ -11,7 +11,7 @@ import (
 )
 
 // aKey singleton for assigning keys to messages
-var aKey = new(atomicKey)
+var aKey = newAtomicKey()
 
 // PQueue is a priority queue backed by a Bolt database on disk
 type PQueue struct {
