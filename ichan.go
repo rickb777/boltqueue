@@ -33,7 +33,7 @@ func NewIChanOf(pq *PQueue) *IChan {
 	poke := make(chan struct{})
 	data := make(chan []byte)
 
-	ichan := &IChan{pq, nil, poke, nil, data, nil}
+	ichan := &IChan{pqueue: pq, poke: poke, output: data}
 
 	puller := &puller{
 		pqueue:    ichan.pqueue,
@@ -114,7 +114,6 @@ func (c *IChan) Close() error {
 
 // Close closes the channel and its underlying queue.
 func (c *IChan) doClose() error {
-	c.pqueue.Close()
 	close(c.poke)
 	return nil
 }
@@ -178,6 +177,7 @@ func (p *puller) recv(ch chan<- []byte) {
 		running = p.deq(ch)
 	}
 	close(ch)
+	p.pqueue.Close()
 }
 
 // ReceiveEnd gets the output end of the IChan. The result is the channel end, not the messages.
