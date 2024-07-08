@@ -1,8 +1,9 @@
 module github.com/rickb777/boltqueue
 
-go 1.16
+go 1.21
 
-require (
-	go.etcd.io/bbolt v1.3.9
-	golang.org/x/sys v0.19.0 // indirect
-)
+toolchain go1.22.5
+
+require go.etcd.io/bbolt v1.3.10
+
+require golang.org/x/sys v0.22.0 // indirect
