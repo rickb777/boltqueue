@@ -203,6 +203,8 @@ func TestGoroutines(t *testing.T) {
 		t.Errorf("Expected total size 0. Got: %d", testPQueue.ApproxSize())
 	}
 
+	errs := make(chan error, 50) // 5 * 5 * 2
+
 	for g := 1; g <= 5; g++ {
 		wg.Add(1)
 		go func() {
@@ -210,17 +212,21 @@ func TestGoroutines(t *testing.T) {
 			time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
 			for p := one; p <= 5; p++ {
 				for n := one; n <= 2; n++ {
-					err := testPQueue.Enqueue(p, NewMessagef("test message %d", p))
-					if err != nil {
-						t.Fatal(err)
+					err1 := testPQueue.Enqueue(p, NewMessagef("test message %d", p))
+					if err1 != nil {
+						errs <- err1
 					}
 				}
 			}
 			wg.Done()
 		}()
 	}
-
 	wg.Wait()
+	close(errs)
+
+	for e := range errs {
+		t.Fatal(e)
+	}
 
 	if testPQueue.ApproxSize() != 50 {
 		t.Errorf("Expected total size 50. Got: %d", testPQueue.ApproxSize())

@@ -6,7 +6,7 @@
 Package boltqueue provides a persistent priority queue based on BoltDB
 (https://github.com/boltdb/bolt)
 
-Priority Queue
+# Priority Queue
 
 The PQueue type represents a priority queue. Messages may be
 inserted into the queue at a numeric priority. Higher numbered priorities
@@ -18,7 +18,7 @@ first.
 There is no practical limit on the number of priorities, but a smaller number
 will typically give better performance than a larger number.
 
-File-backed Buffered Channel
+# File-backed Buffered Channel
 
 The IChan type represents an unbounded channel with one priority, backed
 by a PQueue. As with ordinary channels, messages are inserted into one

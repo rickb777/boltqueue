@@ -2,12 +2,12 @@
 
 [![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/boltqueue)
 [![Build Status](https://api.travis-ci.org/rickb777/boltqueue.svg?branch=master)](https://travis-ci.org/rickb777/boltqueue/builds)
-[![Coverage Status](https://coveralls.io/repos/rickb777/boltqueue/badge.svg?branch=master&service=github)](https://coveralls.io/github/rickb777/boltqueue?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rickb777/boltqueue)](https://goreportcard.com/report/github.com/rickb777/boltqueue)
 [![Issues](https://img.shields.io/github/issues/rickb777/boltqueue.svg)](https://github.com/rickb777/boltqueue/issues)
 
-
+```
     import "github.com/rickb777/boltqueue"
+```
 
 Package boltqueue provides a persistent priority queue (`PQueue`) using as its store 
 [BBolt](https://pkg.go.dev/go.etcd.io/bbolt), which
