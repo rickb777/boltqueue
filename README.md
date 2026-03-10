@@ -1,8 +1,9 @@
 # boltqueue
 
-[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/rickb777/boltqueue)
-[![Build Status](https://api.travis-ci.org/rickb777/boltqueue.svg?branch=master)](https://travis-ci.org/rickb777/boltqueue/builds)
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](http://pkg.go.dev/github.com/rickb777/boltqueue)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rickb777/boltqueue)](https://goreportcard.com/report/github.com/rickb777/boltqueue)
+[![Build](https://github.com/rickb777/boltqueue/actions/workflows/go.yml/badge.svg)](https://github.com/rickb777/boltqueue/actions)
+[![Coverage](https://coveralls.io/repos/github/rickb777/boltqueue/badge.svg?branch=main)](https://coveralls.io/github/rickb777/boltqueue?branch=main)
 [![Issues](https://img.shields.io/github/issues/rickb777/boltqueue.svg)](https://github.com/rickb777/boltqueue/issues)
 
 ```
