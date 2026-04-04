@@ -3,7 +3,7 @@ module github.com/rickb777/boltqueue
 go 1.25.0
 
 require (
-	github.com/magefile/mage v1.16.0
+	github.com/magefile/mage v1.17.1
 	go.etcd.io/bbolt v1.4.3
 )
 
